@@ -50,7 +50,7 @@ bib_hashes=(
 
 sha256hash()
 {
-   sha256sum "$1" | cut -f 1 -d' ' 
+   sha256sum "$1" | cut -f 1 -d' '
 }
 
 i=0

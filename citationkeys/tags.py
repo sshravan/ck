@@ -37,9 +37,9 @@ class SimpleCompleter(object):
                                 if s and s.startswith(current_item)]
             else:
                 self.matches = self.options[:]
-            # print("matches:", self.matches)
 
-        # Return the state'th item from the match list, if we have that many.
+        # Return the state'th item from the match list,
+        # if we have that many.
         try:
             response = self.matches[state]
         except IndexError:
@@ -77,9 +77,10 @@ def find_tagged_pdfs_helper(root_tag_dir, tag_subdir, pdfs, verbosity):
                     pdfs[citation_key] = []
                 pdfs[citation_key].append(tagname)
 
-
 # @param    tagged_cks  a list of CKs that are tagged already
 #           (i.e., just call keys() on the return value of find_tagged_pdfs())
+
+
 def find_untagged_pdfs(ck_bib_dir, ck_tag_dir, cks, tagged_cks, verbosity):
     untagged = set()
 
@@ -208,11 +209,13 @@ def tag_paper(ck_tag_dir, ck_bib_dir, citation_key, tag):
 
     pdfname = citation_key + ".pdf"
     try:
-        os.symlink(os.path.join(ck_bib_dir, pdfname), os.path.join(pdf_tag_dir, pdfname))
+        os.symlink(os.path.join(ck_bib_dir, pdfname),
+                   os.path.join(pdf_tag_dir, pdfname))
         return True
     except FileExistsError:
         return False
     except:
-        print("Unexpected error while tagging " + citation_key + " with '" + tag)
+        print("Unexpected error while tagging " +
+              citation_key + " with '" + tag)
         traceback.print_exc()
         raise
