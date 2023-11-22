@@ -133,7 +133,7 @@ def cks_to_tuples(ck_bib_dir, cks, verbosity):
 def print_ck_tuples(cks, tags, include_url=False, include_venue=True, include_ck=True, include_dateadded=True, include_tags=True):
     for (ck, author, title, year, date, url, venue) in cks:
         if include_ck:
-            click.secho(ck, fg='blue', nl=False)
+            click.secho(ck, fg='cyan', nl=False)
             click.echo(", ", nl=False)
 
         click.secho(title, fg='green', nl=False)
