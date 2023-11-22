@@ -71,7 +71,7 @@ How to use
 Best practices
 --------------
 
-**Q:** How to deal with multiple _published_ versions of the same paper (eprint, conference, journal)?  
+**Q:** How to deal with multiple _published_ versions of the same paper (eprint, conference, journal)?
 _A:_ Have each version as a different CK, since it might contain additional info that needs to be cited.
 
 TODOs
@@ -80,7 +80,7 @@ TODOs
 ### Bugs
 
  - some springerlink URLs don't work because they have .ris citations only
-    + e.g., https://link.springer.com/article/10.1007/s10207-005-0071-2 
+    + e.g., https://link.springer.com/article/10.1007/s10207-005-0071-2
 
 ### Features
 

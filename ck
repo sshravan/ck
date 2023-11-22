@@ -199,16 +199,16 @@ def ck_check(ck_bib_dir, ck_tag_dir, verbosity):
 
         if len(missing[ext]) > 0:
             print()
-        
+
     # make sure all .pdf extensions are lowercase in TagDir
     for relpath in os.listdir(ck_tag_dir):
         filepath = os.path.join(ck_tag_dir, relpath)
         ck, extOrig = os.path.splitext(relpath)
-        
+
         ext = extOrig.lower()
         if ext != extOrig:
             print_warning(filepath + " has uppercase " + "." + extOrig + " extension in TagDir")
-    
+
     # TODO(Alin): make sure symlinks are not broken in TagDir
     # TODO(Alin): make sure all .bib files have the right CK and have ckdateadded
 
@@ -386,7 +386,7 @@ def ck_add_cmd(ctx, url, citation_key, no_tag_prompt):
 
     if not is_handled:
         click.echo("No handler for URL was found. This is a PDF-only download, so expecting user to give a citation key.")
-        
+
         # If no citation key is given, fail because we can't check .bib file exists until after
         # user did all the .bib file editing. Thus, it would be unfriendly to tell them their
         # citation key already exists and waste their editing work.
@@ -429,11 +429,11 @@ def ck_add_cmd(ctx, url, citation_key, no_tag_prompt):
 
     click.echo("Will use citation key: ", nl=False)
     click.secho(citation_key, fg="blue")
-    
+
     # Derive PDF and .bib file paths from citation key.
     destpdffile = ck_to_pdf(ck_bib_dir, citation_key)
     destbibfile = ck_to_bib(ck_bib_dir, citation_key)
-    
+
     # Make sure we've never added this paper's PDF before! Note that its bib file might've been added with `addbib`
     # (Otherwise, user will be surprised when they overwrite their previous papers.)
     if os.path.exists(destpdffile):
@@ -450,7 +450,7 @@ def ck_add_cmd(ctx, url, citation_key, no_tag_prompt):
     if is_handled and os.path.exists(destbibfile):
         error_citation_exists(ctx, citation_key)
         sys.exit(1)
-    
+
     # Write the PDF file
     with open(destpdffile, 'wb') as fout:
         fout.write(pdf_data)
@@ -583,7 +583,7 @@ def ck_untag_cmd(ctx, force, silent, citation_key, tags):
     ck_bib_dir = ctx.obj['BibDir']
     ck_tag_dir = ctx.obj['TagDir']
     ck_tags    = ctx.obj['tags']
-        
+
     if citation_key is None and len(tags) == 0:
         # If no paper was specified, detects untagged papers and asks the user to tag them.
         untagged_pdfs = find_untagged_pdfs(ck_bib_dir, ck_tag_dir, list_cks(ck_bib_dir, False), ck_tags.keys(), verbosity)
@@ -696,7 +696,7 @@ def ck_tag_cmd(ctx, silent, citation_key, tags):
 
         tags = get_all_tags(ck_tag_dir)
 
-        if completed.returncode != 0: 
+        if completed.returncode != 0:
             print_warning("Not suggesting any tags because 'pdfgrep' is not installed.")
         elif len(tags) > 0:
             # NOTE(Alin): Tags can be hierarchical, e.g.,, 'accumulators/merkle', so we split them up into separate words by '/'
@@ -759,7 +759,7 @@ def ck_rm_cmd(ctx, force, citation_key):
     verbosity  = ctx.obj['verbosity']
     ck_bib_dir = ctx.obj['BibDir']
     ck_tag_dir = ctx.obj['TagDir']
-    
+
     # allow user to provide file name directly (or citation key to delete everything)
     basename, extension = os.path.splitext(citation_key)
 
@@ -829,7 +829,7 @@ def ck_open_cmd(ctx, filename):
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        
+
         if completed.returncode != 0:
             print_error("Could not open " + fullpath)
             sys.exit(1)
@@ -839,7 +839,7 @@ def ck_open_cmd(ctx, filename):
         # After the user successfully edited the file, we add the correct citation key and the 'ckdateadded' field
         if os.path.exists(fullpath):
             print(file_to_string(fullpath).strip())
-        
+
             try:
                 bibent = bibent_from_file(fullpath)
 
@@ -998,7 +998,7 @@ def ck_rename_cmd(ctx, old_citation_key, new_citation_key):
 
         # rename file in BibDir
         os.rename(
-            os.path.join(ck_bib_dir, oldfilename + ext), 
+            os.path.join(ck_bib_dir, oldfilename + ext),
             os.path.join(ck_bib_dir, newfilename + ext))
 
     # update .bib file citation key
@@ -1098,7 +1098,7 @@ def ck_cleanbib_cmd(ctx):
         except FileNotFoundError:
             print(ck + ":", "Missing BibTeX file in directory", ck_bib_dir)
         except:
-            print(ck + ":", "Unexpected error") 
+            print(ck + ":", "Unexpected error")
             traceback.print_exc()
 
 @ck.command('list')
@@ -1276,7 +1276,7 @@ def ck_genbib_cmd(ctx, output_file, tags, fmt, recursive):
                 else:
                     print_error("Unknown bibliography format: " + fmt)
                     sys.exit(1)
-                
+
                 bibstr = bibstr.strip()
                 output_file.write(bibstr + '\n\n')
         except:
@@ -1298,7 +1298,7 @@ def ck_genbib_cmd(ctx, output_file, tags, fmt, recursive):
 )
 @click.pass_context
 def ck_copypdfs_cmd(ctx, output_dir, tags, recursive):
-    """Copies all PDFs tagged with the specified tags into the specified output directory.""" 
+    """Copies all PDFs tagged with the specified tags into the specified output directory."""
 
     ctx.ensure_object(dict)
     verbosity  = ctx.obj['verbosity']
@@ -1327,4 +1327,3 @@ def ck_copypdfs_cmd(ctx, output_dir, tags, recursive):
 
 if __name__ == '__main__':
     ck(obj={})
-

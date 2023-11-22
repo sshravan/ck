@@ -116,7 +116,7 @@ def bibent_canonicalize(ck, bibent, verbosity):
 def bibent_to_bibdb(bibent):
     """Wraps a single bibentry into a bibdb, which other calls might expect"""
     bibdb = bibtexparser.bibdatabase.BibDatabase()
-    bibdb.entries = [ bibent ] 
+    bibdb.entries = [ bibent ]
     return bibdb
 
 def bibent_new(citation_key, entry_type):
@@ -234,7 +234,7 @@ def bibent_get_author_initials_ck(bibent, verbosity):
             # the author name format could be "<first> <last>" or "<last>, <first>"
             last_name = get_last_name(author)
             initials += last_name[0].upper()
-    
+
     # If we had more than 4 authors, then we use 'ABC+99'
     if moreThanFour:
         initials += '+'
@@ -367,7 +367,7 @@ def bibent_set_dateadded(bibent, timestr):
 
     #print("Time:", nowstr)
     bibent['ckdateadded'] = timestr
- 
+
 # Add ckdateadded field to keep track of papers by date added
 def bibpath_set_dateadded(destbibfile, timestr):
     bibent = bibent_from_file(destbibfile)

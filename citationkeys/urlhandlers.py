@@ -126,7 +126,7 @@ def handle_url(url, handlers, opener, user_agent, verbosity, bib_downl, pdf_down
             url = url[:-4]
             parsed_url = urlparse(url)
 
-        # For all domains, we typically pre-parse the page at 'url' and pass in the 
+        # For all domains, we typically pre-parse the page at 'url' and pass in the
         # parser object to the URL handler below
         if domain not in no_index_html:
             index_html = get_url(opener, url, verbosity, user_agent)
@@ -201,7 +201,7 @@ def dlacm_handler(opener, soup, parsed_url, parser, user_agent, verbosity, bib_d
 #    pdfurl = url_prefix + '/'  + elem.get('href')
 #
 #    # second, we scrape the .bib link
-#    # We use the <meta name="citation_abstract_html_url" content="http://dl.acm.org/citation.cfm?id=28395.28420"> tag in the <head> 
+#    # We use the <meta name="citation_abstract_html_url" content="http://dl.acm.org/citation.cfm?id=28395.28420"> tag in the <head>
 #    elem = soup.find("head").find("meta", attrs={"name": "citation_abstract_html_url"})
 #    newurl = urlparse(elem['content'])
 #    ids = newurl.query

@@ -13,7 +13,7 @@ import sys
 import traceback
 
 class SimpleCompleter(object):
-    
+
     def __init__(self, options, spliter):
         self.options = sorted(options)
         self.spliter = spliter
@@ -25,12 +25,12 @@ class SimpleCompleter(object):
             # This is the first time for this text, so build a match list.
             current_item = text.split(self.spliter)[-1].strip()
             if current_item:
-                self.matches = [s 
+                self.matches = [s
                                 for s in self.options
                                 if s and s.startswith(current_item)]
             else:
                 self.matches = self.options[:]
-        
+
         # Return the state'th item from the match list,
         # if we have that many.
         try:
@@ -65,7 +65,7 @@ def find_tagged_pdfs_helper(root_tag_dir, tag_subdir, pdfs, verbosity):
                     pdfs[citation_key] = []
                 pdfs[citation_key].append(tagname)
 
-# @param    tagged_cks  a list of CKs that are tagged already 
+# @param    tagged_cks  a list of CKs that are tagged already
 #           (i.e., just call keys() on the return value of find_tagged_pdfs())
 def find_untagged_pdfs(ck_bib_dir, ck_tag_dir, cks, tagged_cks, verbosity):
     untagged = set()
@@ -134,7 +134,7 @@ def style_tags(taglist):
 def tags_filter_whitespace(tags):
     tags = [t.strip() for t in tags]
     tags = list(filter(lambda t: len(t) > 0, tags))
-    return tags 
+    return tags
 
 def parse_tags(tags_str, splitter=','):
     tags = tags_str.split(splitter)
@@ -188,6 +188,6 @@ def tag_paper(ck_tag_dir, ck_bib_dir, citation_key, tag):
     except FileExistsError:
         return False
     except:
-        print("Unexpected error while tagging " + citation_key + " with '" + tag) 
+        print("Unexpected error while tagging " + citation_key + " with '" + tag)
         traceback.print_exc()
         raise
