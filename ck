@@ -142,8 +142,8 @@ def ck(ctx, config_file, verbose):
     if sys.platform.startswith('linux'):
         ctx.obj['OpenCmd'] = 'xdg-open'
     elif sys.platform == 'darwin':
-        # ctx.obj['OpenCmd'] = 'open -a Highlights'
-        ctx.obj['OpenCmd'] = 'open'
+        ctx.obj['OpenCmd'] = 'open -a Highlights'
+        # ctx.obj['OpenCmd'] = 'open'
     else:
         print_error(sys.platform + " is not supported.")
         sys.exit(1)
@@ -795,6 +795,7 @@ def ck_open_cmd(ctx, filename):
     ck_markdown_editor = ctx.obj['MarkdownEditor']
     ck_tags = ctx.obj['tags']
 
+    ck_open = ck_open.split()
     citation_key, extension = os.path.splitext(filename)
 
     if len(extension.strip()) == 0:
@@ -815,7 +816,7 @@ def ck_open_cmd(ctx, filename):
 
         # not interested in output
         completed = subprocess.run(
-            [ck_open, "-a", "Highlights", fullpath],
+            ck_open + [fullpath],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -859,7 +860,7 @@ def ck_open_cmd(ctx, filename):
             sys.exit(1)
 
         completed = subprocess.run(
-            [ck_open, fullpath],
+            ck_open + [fullpath],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
