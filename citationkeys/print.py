@@ -2,7 +2,7 @@ import click
 
 
 def style_ck(ck):
-    return click.style(ck, fg="blue")
+    return click.style(ck, fg="cyan")
 
 
 def style_error(msg):

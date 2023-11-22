@@ -142,6 +142,7 @@ def ck(ctx, config_file, verbose):
     if sys.platform.startswith('linux'):
         ctx.obj['OpenCmd'] = 'xdg-open'
     elif sys.platform == 'darwin':
+        # ctx.obj['OpenCmd'] = 'open -a Highlights'
         ctx.obj['OpenCmd'] = 'open'
     else:
         print_error(sys.platform + " is not supported.")
@@ -291,7 +292,7 @@ def ck_addbib_cmd(ctx, url, citation_key):
         destbibfile = ck_to_bib(ck_bib_dir, citation_key)
 
     click.echo("Will use citation key: ", nl=False)
-    click.secho(citation_key, fg="blue")
+    click.secho(citation_key, fg="cyan")
 
     # Sets the 'ckdateadded' field in the .bib file
     bibent['ID'] = citation_key
@@ -379,7 +380,7 @@ def ck_add_cmd(ctx, url, citation_key, no_tag_prompt):
         bibent['ID'] = bibent['ID'] + "e"
 
     click.echo("Will use citation key: ", nl=False)
-    click.secho(citation_key, fg="blue")
+    click.secho(citation_key, fg="cyan")
 
     # Derive PDF and .bib file paths from citation key.
     destpdffile = ck_to_pdf(ck_bib_dir, citation_key)
@@ -580,7 +581,7 @@ def ck_untag_cmd(ctx, force, silent, citation_key, tags):
                         click.secho("Was not tagged with '" + tag +
                                     "' tag to begin with", fg="red", err=True)
         else:
-            if force or click.confirm("Are you sure you want to remove ALL tags for " + click.style(citation_key, fg="blue") + "?"):
+            if force or click.confirm("Are you sure you want to remove ALL tags for " + click.style(citation_key, fg="cyan") + "?"):
                 if untag_paper(ck_tag_dir, citation_key):
                     click.secho("Removed all tags!", fg="green")
                 else:
@@ -717,7 +718,7 @@ def ck_tag_cmd(ctx, silent, citation_key, tags):
 
         # returns array of tags
         tags = prompt_for_tags(
-            ctx, "Please enter tag(s) for '" + click.style(citation_key, fg="blue") + "'")
+            ctx, "Please enter tag(s) for '" + click.style(citation_key, fg="cyan") + "'")
 
     for tag in tags:
         if tag_paper(ck_tag_dir, ck_bib_dir, citation_key, tag):
@@ -814,7 +815,7 @@ def ck_open_cmd(ctx, filename):
 
         # not interested in output
         completed = subprocess.run(
-            [ck_open, fullpath],
+            [ck_open, "-a", "Highlights", fullpath],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
