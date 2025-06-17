@@ -11,7 +11,8 @@ from datetime import datetime
 import bibtexparser
 import click
 from bibtexparser.customization import page_double_hyphen
-from bibtexparser.latexenc import latex_to_unicode  # , string_to_latex, protect_uppercase
+# , string_to_latex, protect_uppercase
+from bibtexparser.latexenc import latex_to_unicode
 
 from .print import print_error
 
@@ -41,8 +42,10 @@ def strip_accents(s):
     except:
         return s
 
+
 def new_bibtex_parser():
-    parser = bibtexparser.bparser.BibTexParser(interpolate_strings=True, common_strings=True)
+    parser = bibtexparser.bparser.BibTexParser(
+        interpolate_strings=True, common_strings=True)
 
     # TODO(Alin): For now, this serves no purpose, but this is where we might want to canonicalize the BibTeX
     def customizations(record):
@@ -51,19 +54,19 @@ def new_bibtex_parser():
         :param record: a record
         :returns: -- customized record
         """
-        #record = type(record)
-        #record = author(record)	# would split the 'author' field into an array (also see splitname(string singlename) and getnames(list names))
-        #record = editor(record)
+        # record = type(record)
+        # record = author(record)	# would split the 'author' field into an array (also see splitname(string singlename) and getnames(list names))
+        # record = editor(record)
         record = page_double_hyphen(record)
-        #record = journal(record)
-        #record = keyword(record)
-        #record = link(record)
-        #record = doi(record)
-        #record = homogenize_latex_encoding(record)
+        # record = journal(record)
+        # record = keyword(record)
+        # record = link(record)
+        # record = doi(record)
+        # record = homogenize_latex_encoding(record)
 
         # NOTE(Alin): convert_to_unicode(record) seems to change valid LaTeX in the .bib file like \url{...} to Unicode junk, which we don't want.
         # Furthermore, we want to keep the LaTeX when copying the BibTeX to the clipboard.
-        #record = convert_to_unicode(record)
+        # record = convert_to_unicode(record)
 
         return record
 
@@ -71,16 +74,18 @@ def new_bibtex_parser():
 
     return parser
 
+
 def bibent_from_url(citation_key, url):
     bibent = bibent_new(citation_key, "misc")
 
     # TODO(Alex): Try to pre-fill information here from PDF metadata (or PDF OCR?)
-    bibent['howpublished']   = '\\url{' + url + '}'
-    bibent['author']         = ''
-    bibent['year']           = ''
-    bibent['title']          = ''
+    bibent['howpublished'] = '\\url{' + url + '}'
+    bibent['author'] = ''
+    bibent['year'] = ''
+    bibent['title'] = ''
 
     return bibent
+
 
 def bibent_canonicalize(ck, bibent, verbosity):
     updated = False
@@ -89,7 +94,8 @@ def bibent_canonicalize(ck, bibent, verbosity):
     bck = bibent['ID']
     if bck != ck:
         if verbosity > 1:
-            print(ck + ": Replaced unexpected '" + bck + "' CK in .bib file. Fixing...")
+            print(ck + ": Replaced unexpected '" +
+                  bck + "' CK in .bib file. Fixing...")
         bibent['ID'] = ck
         updated = True
 
@@ -100,7 +106,7 @@ def bibent_canonicalize(ck, bibent, verbosity):
         bibent['author'] = author
         updated = True
 
-    title  = bibent['title'].strip()
+    title = bibent['title'].strip()
     if len(title) > 0 and title[0] != "{" and title[len(title)-1] != "}":
         title = "{" + title + "}"
     if bibent['title'] != title:
@@ -113,14 +119,17 @@ def bibent_canonicalize(ck, bibent, verbosity):
 
     return updated
 
+
 def bibent_to_bibdb(bibent):
     """Wraps a single bibentry into a bibdb, which other calls might expect"""
     bibdb = bibtexparser.bibdatabase.BibDatabase()
-    bibdb.entries = [ bibent ]
+    bibdb.entries = [bibent]
     return bibdb
 
+
 def bibent_new(citation_key, entry_type):
-    return { 'ID': citation_key, 'ENTRYTYPE': entry_type }
+    return {'ID': citation_key, 'ENTRYTYPE': entry_type}
+
 
 def bibdb_from_file(destbibfile):
     """Returns a bibdb from a BibTeX file"""
@@ -130,15 +139,18 @@ def bibdb_from_file(destbibfile):
 
         return bibdb
 
+
 def bibent_from_file(destbibfile):
     """Returns a single bibentry (for one paper) from a BibTeX file"""
     bibdb = bibdb_from_file(destbibfile)
     assert len(bibdb.entries) == 1
     return bibdb.entries[0]
 
+
 def bibent_to_file(destbibfile, bibent):
     with open(destbibfile, 'w') as bibf:
         bibf.write(bibent_to_bibtex(bibent))
+
 
 def bibent_get_venue(bibent):
     if 'booktitle' in bibent:
@@ -156,6 +168,8 @@ def bibent_get_venue(bibent):
     return venue
 
 # This takes a single 'bibtex[i]' entry (not a vector 'bibtex') as input
+
+
 def bibent_get_url(bibent):
     url = None
     urlbibkey = None
@@ -179,21 +193,28 @@ def bibent_get_url(bibent):
         return None
 
 # TODO(Alex): Let's use last names!
+
+
 def bibent_get_first_author_year_title_ck(bibent):
     citation_key = bibent['author'].split(' ')[0].lower() + \
-                                bibent['year'] + \
-                                bibent['title'].split(' ')[0].lower() # google-scholar-like
+        bibent['year'] + \
+        bibent['title'].split(' ')[0].lower()  # google-scholar-like
     citation_key = strip_accents(citation_key)
-    citation_key = ''.join([c for c in citation_key if c in string.ascii_lowercase or c in string.digits]) # filter out strange chars
+    # filter out strange chars
+    citation_key = ''.join(
+        [c for c in citation_key if c in string.ascii_lowercase or c in string.digits])
     return citation_key
+
 
 def bibent_get_author_initials_ck(bibent, verbosity):
     # replace all newlines by space, so our ' and ' splitting works
-    bibent['author'] = bibent['author'].replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
+    bibent['author'] = bibent['author'].replace(
+        '\n', ' ').replace('\r', ' ').replace('\t', ' ')
 
     allAuthors = bibent['author'].split(' and ')
     if verbosity > 0:
-        print("All authors \"" + bibent['author'] + "\" parsed to: ", allAuthors)
+        print("All authors \"" +
+              bibent['author'] + "\" parsed to: ", allAuthors)
     moreThanFour = len(allAuthors) > 4
 
     # get the first four (or less) author names
@@ -209,7 +230,8 @@ def bibent_get_author_initials_ck(bibent, verbosity):
     def get_last_name(author):
         # NOTE(Alin): Removes everything but the characters below. (i.e., for now, we're restrict ourselves to simple names with A-Z letters only)
         regex = re.compile('[^ ,a-zA-Z]')
-        author = regex.sub('', author).strip()  # Also, remove leading/trailing spaces
+        # Also, remove leading/trailing spaces
+        author = regex.sub('', author).strip()
 
         if ',' in author:
             last_name = author.split(',')[0]
@@ -241,10 +263,12 @@ def bibent_get_author_initials_ck(bibent, verbosity):
 
     return initials
 
+
 def bibtex_to_bibdb(bibtex):
     """Parses the given BibTeX string into potentially multiple bibliography objects"""
     bibdb = bibtexparser.loads(bibtex, new_bibtex_parser())
     return bibdb
+
 
 def bibtex_to_bibent(bibtex):
     """Returns a bibliography object from a BibTeX string'"""
@@ -265,7 +289,8 @@ def bibent_to_default_ck(bibent, default_ck_policy, verbosity):
         citation_key = bibent_get_author_initials_ck(bibent, verbosity)
         citation_key += bibent['year']
     else:
-        print_error("Unknown default citation key policy in configuration file: " + default_ck_policy)
+        print_error(
+            "Unknown default citation key policy in configuration file: " + default_ck_policy)
         sys.exit(1)
 
     # Something went wrong if the citation key is empty, so exit.
@@ -273,19 +298,22 @@ def bibent_to_default_ck(bibent, default_ck_policy, verbosity):
 
     return citation_key
 
+
 def bibtex_to_bibent_with_ck(bibtex, citation_key, default_ck_policy, verbosity):
     bibent = bibtex_to_bibent(bibtex.decode())
-    bibent = defaultdict(lambda : '', bibent)
+    bibent = defaultdict(lambda: '', bibent)
 
     # If no citation key was given as argument, use the DefaultCk policy from the configuration file.
     # NOTE(Alin): Non-handled URLs always have a citation key, so we need not worry about them.
     if not citation_key:
-        citation_key = bibent_to_default_ck(bibent, default_ck_policy, verbosity)
+        citation_key = bibent_to_default_ck(
+            bibent, default_ck_policy, verbosity)
 
     # Set the citation key in the BibTeX object
     bibent['ID'] = citation_key
 
     return citation_key, bibent
+
 
 def bibent_to_bibtex(bibent):
     """Returns a BibTeX string for the bibliography object'"""
@@ -294,11 +322,14 @@ def bibent_to_bibtex(bibent):
 
     return bibwriter.write(bibent_to_bibdb(bibent)).strip().strip('\n').strip('\r').strip('\t')
 
+
 def bibent_to_markdown(bibent):
     return bibent_to_fmt(bibent, 'markdown')
 
+
 def bibent_to_text(bibent):
     return bibent_to_fmt(bibent, 'text')
+
 
 def bibent_to_fmt(bibent, fmt):
     citation_key = bibent['ID']
@@ -312,8 +343,10 @@ def bibent_to_fmt(bibent, fmt):
         year = bibent['year']
     authors = authors.replace("{", "")
     authors = authors.replace("}", "")
-    authros = authors.replace('\n', ' ').replace('\r', '')  # sometimes author names are given on separate lines, which breaks the Markdown formatting
-    citation_key = citation_key.replace("+", "plus") # beautiful-jekyll is not that beautiful and doesn't like '+' in footnote names
+    # sometimes author names are given on separate lines, which breaks the Markdown formatting
+    authros = authors.replace('\n', ' ').replace('\r', '')
+    # beautiful-jekyll is not that beautiful and doesn't like '+' in footnote names
+    citation_key = citation_key.replace("+", "plus")
 
     if fmt == "markdown":
         to_fmt = "[^" + citation_key + "]: **" + title + "**, by " + authors
@@ -335,9 +368,9 @@ def bibent_to_fmt(bibent, fmt):
 
     if year != None:
         if fmt == "markdown":
-            to_fmt = to_fmt +  ", " + year
+            to_fmt = to_fmt + ", " + year
         elif fmt == "text":
-            to_fmt = to_fmt +  "; " + year
+            to_fmt = to_fmt + "; " + year
         else:
             print_error("Unknown format: " + fmt)
             raise "Internal error"
@@ -348,27 +381,31 @@ def bibent_to_fmt(bibent, fmt):
             mdurl = "[[URL]](" + url + ")"
             to_fmt = to_fmt + ", " + mdurl
         elif fmt == "text":
-            to_fmt = to_fmt +  "; " + url
+            to_fmt = to_fmt + "; " + url
         else:
             print_error("Unknown format: " + fmt)
             raise "Internal error"
 
     return to_fmt
 
+
 def bibpath_rename_ck(destbibfile, citation_key):
     bibent = bibent_from_file(destbibfile)
     bibent['ID'] = citation_key
     bibent_to_file(destbibfile, bibent)
+
 
 def bibent_set_dateadded(bibent, timestr):
     if timestr == None:
         now = datetime.now()
         timestr = now.strftime("%Y-%m-%d %H:%M:%S")
 
-    #print("Time:", nowstr)
+    # print("Time:", nowstr)
     bibent['ckdateadded'] = timestr
 
 # Add ckdateadded field to keep track of papers by date added
+
+
 def bibpath_set_dateadded(destbibfile, timestr):
     bibent = bibent_from_file(destbibfile)
     bibent_set_dateadded(bibent, timestr)

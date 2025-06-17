@@ -85,7 +85,8 @@ def download_bib(opener, user_agent, biburl, verbosity):
 
 def download_pdf(opener, user_agent, pdfurl, verbosity):
     if pdfurl is not None:
-        pdf_data = get_url(opener, pdfurl, verbosity, user_agent, ["application/pdf", "application/octet-stream"])
+        pdf_data = get_url(opener, pdfurl, verbosity, user_agent, [
+                           "application/pdf", "application/octet-stream"])
         return pdf_data
     return None
 
@@ -168,7 +169,8 @@ def dlacm_handler(opener, soup, parsed_url, parser, user_agent, verbosity, bib_d
         biburl = "http://doi.org/" + doi
         if verbosity > 0:
             print("ACM DL paper bib URL:", biburl)
-        bibtex = get_url(opener, biburl, verbosity, user_agent, None, {"Accept": "application/x-bibtex"})
+        bibtex = get_url(opener, biburl, verbosity, user_agent,
+                         None, {"Accept": "application/x-bibtex"})
 
         # TODO: There is a <form action="/action/exportCiteProcCitation"> element with <input name="content"> which seems to have the BibTeX, but we need to send it a POST request, I think
         # TODO: write a post_url() function that does this and then parse the response?
@@ -255,7 +257,8 @@ def sciencedirect_handler(opener, soup, parsed_url, parser, user_agent, verbosit
         # First, try to find a link to the PDF
         pdf_redirect_url = None
         # Option 1: <head> has a <meta> tag with the link
-        elem = soup.find("head").find("meta", attrs={"name": "citation_pdf_url"})
+        elem = soup.find("head").find(
+            "meta", attrs={"name": "citation_pdf_url"})
         if elem != None:
             if verbosity > 1:
                 print("<head> <meta> PDF elem:", elem)
@@ -292,7 +295,8 @@ def sciencedirect_handler(opener, soup, parsed_url, parser, user_agent, verbosit
         if verbosity > 1:
             print("<head> <meta> .bib elem:", elem)
         pii = elem['content']
-        biburl = url_prefix + "/sdfe/arp/cite?pii=" + pii + "&format=text/x-bibtex&withabstract=True"
+        biburl = url_prefix + "/sdfe/arp/cite?pii=" + \
+            pii + "&format=text/x-bibtex&withabstract=True"
 
         if verbosity > 0:
             click.echo("BibTeX URL: " + str(biburl))
@@ -320,9 +324,11 @@ def springerlink_handler(opener, soup, parsed_url, parser, user_agent, verbosity
     biburl = None
 
     if pdf_downl:
-        elem = soup.select_one("#cobranding-and-download-availability-text > div > a")
+        elem = soup.select_one(
+            "#cobranding-and-download-availability-text > div > a")
         if elem is None:
-            elem = soup.select_one("#cobranding-and-download-availability-text > div > p > a")
+            elem = soup.select_one(
+                "#cobranding-and-download-availability-text > div > p > a")
         if verbosity > 1:
             print("HTML for PDF:", elem)
 
@@ -331,7 +337,8 @@ def springerlink_handler(opener, soup, parsed_url, parser, user_agent, verbosity
     if bib_downl:
         # elem = soup.select_one("#Dropdown-citations-dropdown > ul > li:nth-child(4) > a") # does not work because needs JS
         # e.g. of .bib URL: https://citation-needed.springer.com/v2/references/10.1007/978-3-540-28628-8_20?format=bibtex&flavour=citation
-        biburl = 'https://citation-needed.springer.com/v2/references' + paper_id + '?format=bibtex&flavour=citation'
+        biburl = 'https://citation-needed.springer.com/v2/references' + \
+            paper_id + '?format=bibtex&flavour=citation'
 
     return download_pdf_andor_bib(opener, user_agent, pdfurl, biburl, verbosity)
 
@@ -395,7 +402,8 @@ def epubssiam_handler(opener, soup, parsed_url, parser, user_agent, verbosity, b
         pdfurl = url_prefix + '/doi/pdf/' + doi
 
     if bib_downl:
-        biburl = url_prefix + '/action/downloadCitation?doi=' + doi_alt + '&format=bibtex&include=cit'
+        biburl = url_prefix + '/action/downloadCitation?doi=' + \
+            doi_alt + '&format=bibtex&include=cit'
 
     return download_pdf_andor_bib(opener, user_agent, pdfurl, biburl, verbosity)
 
@@ -423,12 +431,14 @@ def ieeexplore_handler(opener, soup, parsed_url, parser, user_agent, verbosity, 
         # To get the PDF link, we have to download an HTML page which puts the PDF in an iframe. Doh.
         # e.g., https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=7958589
         # (How do you come up with this design?)
-        pdf_iframe_url = url_prefix + '/stamp/stamp.jsp?tp=&arnumber=' + str(arnum)
+        pdf_iframe_url = url_prefix + \
+            '/stamp/stamp.jsp?tp=&arnumber=' + str(arnum)
         html = get_url(opener, pdf_iframe_url, verbosity, user_agent)
         pdfsoup = BeautifulSoup(html, parser)
         elem = pdfsoup.find('iframe')
         if elem == None:
-            print_error("Parsing failed! Could not find iframe in stamp.jsp HTML.")
+            print_error(
+                "Parsing failed! Could not find iframe in stamp.jsp HTML.")
             sys.exit(1)
 
         # TODO(Alin): If we keep getting more errors, try direct link: https://ieeexplore.ieee.org/stampPDF/getPDF.jsp?tp=&isnumber=&arnumber=$arnum
@@ -443,9 +453,11 @@ def ieeexplore_handler(opener, soup, parsed_url, parser, user_agent, verbosity, 
         pdfurl = elem['src']
 
     if bib_downl:
-        biburl = url_prefix + '/xpl/downloadCitations?recordIds=' + arnum + '&download-format=download-bibtex&citations-format=citation-abstract'
+        biburl = url_prefix + '/xpl/downloadCitations?recordIds=' + arnum + \
+            '&download-format=download-bibtex&citations-format=citation-abstract'
 
-    bib_data, pdf_data = download_pdf_andor_bib(opener, user_agent, pdfurl, biburl, verbosity)
+    bib_data, pdf_data = download_pdf_andor_bib(
+        opener, user_agent, pdfurl, biburl, verbosity)
 
     if bib_downl:
         # clean the .bib file, which IEEExplore kindly serves with <br>'s in it
