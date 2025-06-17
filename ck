@@ -937,6 +937,20 @@ def ck_open_cmd(ctx, filename):
         sys.exit(1)
 
 
+def filter_bib_entry(bibent):
+    camera_keys = {
+        'author', 'booktitle', 'doi', 'howpublished',
+        'note', 'series', 'title', 'url', 'urldate', 'year'
+    }
+
+    filtered_bibent = {
+        k: v for k, v in bibent.items()
+        if k.isupper() or k in camera_keys
+    }
+
+    return filtered_bibent
+
+
 @ck.command('bib')
 @click.argument('citation_key', required=True, type=click.STRING)
 @click.option(
