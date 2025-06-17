@@ -940,7 +940,7 @@ def ck_open_cmd(ctx, filename):
 
 def filter_bib_entry(bibent):
     camera_keys = {
-        'author', 'booktitle', 'doi', 'howpublished',
+        'author', 'booktitle', 'doi', 'howpublished', 'journal',
         'note', 'series', 'title', 'url', 'urldate', 'year'
     }
 
