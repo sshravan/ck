@@ -441,10 +441,10 @@ def ck_add_cmd(ctx, url, citation_key, no_tag_prompt):
         bibtex, citation_key, default_ck, verbosity)
     bibtex = None  # make sure we never use this again
 
-    # TODO: Ugh, this should be handled based on the CK policy, no? Also, what if user gives own CK?
-    if "eprint.iacr.org" in url:
-        citation_key = citation_key + "e"
-        bibent['ID'] = bibent['ID'] + "e"
+    # # TODO: Ugh, this should be handled based on the CK policy, no? Also, what if user gives own CK?
+    # if "eprint.iacr.org" in url:
+    #     citation_key = citation_key + "e"
+    #     bibent['ID'] = bibent['ID'] + "e"
 
     click.echo("Will use citation key: ", nl=False)
     click.secho(citation_key, fg="cyan")
