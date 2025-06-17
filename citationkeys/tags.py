@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # NOTE: Alphabetical order please
+from .utils import readline_enable_tab_autocompletion
 from datetime import datetime
 from pprint import pprint
 
@@ -11,8 +12,6 @@ import os
 import readline  # improves tagging experience a lot!
 import sys
 import traceback
-
-from .utils import readline_enable_tab_autocompletion
 
 
 class SimpleCompleter(object):
@@ -51,6 +50,8 @@ class SimpleCompleter(object):
 
 
 # returns a map of CK to its list of tags
+
+
 def find_tagged_pdfs(ck_tag_subdir, verbosity):
     pdfs = dict()
     find_tagged_pdfs_helper(ck_tag_subdir, ck_tag_subdir, pdfs, verbosity)
@@ -129,6 +130,8 @@ def print_all_tags(ck_tag_dir):
 
 
 # TODO(Alin): Come up with a pretty print style
+
+
 def print_tags(tags):
     def pop_suffix(prefix):
         pos = prefix.rfind('/')
@@ -181,6 +184,8 @@ def prompt_for_tags(ctx, prompt):
 
 
 # if tag is None, removes all tags for the paper
+
+
 def untag_paper(ck_tag_dir, citation_key, tag=None):
     if tag is not None:
         filepath = os.path.join(ck_tag_dir, tag, citation_key + ".pdf")
