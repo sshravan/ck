@@ -976,6 +976,79 @@ def filter_bib_entry(bibent):
 )
 @click.pass_context
 def ck_bib_cmd(ctx, citation_key, clipboard, fmt):
+    """Returns a bib for camera ready. Drops unncessary attributes. See `ck fullbib --help` for alternative."""
+
+    ctx.ensure_object(dict)
+    verbosity = ctx.obj['verbosity']
+    ck_bib_dir = ctx.obj['BibDir']
+
+    path = ck_to_bib(ck_bib_dir, citation_key)
+    if os.path.exists(path) is False:
+        if click.confirm(citation_key + " has no .bib file. Would you like to create it?"):
+            ctx.invoke(ck_open_cmd, filename=citation_key + ".bib")
+        else:
+            click.echo("Okay, will NOT create .bib file. Exiting...")
+            sys.exit(1)
+
+    # Parse the BibTeX
+    bibent = bibent_from_file(path)
+    # Filtered bibent
+    bibent = filter_bib_entry(bibent)
+
+    if fmt == "bibtex":
+        click.echo("Camera ready BibTeX for '%s'" % path, err=True)
+        click.echo()
+
+        to_copy = bibent_to_bibtex(bibent)
+        to_print = to_copy
+    elif fmt == "markdown":
+        to_copy = bibent_to_markdown(bibent)
+        # For Markdown bib's, we print exactly what we copy!
+        to_print = to_copy
+    elif fmt == "text":
+        to_copy = bibent_to_text(bibent)
+        # For plain text bib's, we print exactly what we copy!
+        to_print = to_copy
+    else:
+        print_error("Code for parsing the citation format is wrong.")
+        sys.exit(1)
+
+    click.secho(to_print, fg='cyan')
+
+    if clipboard:
+        pyperclip.copy(to_copy)
+        click.echo(err=True)
+        # NOTE: We print to stderr since we want to allow the user to send the BibTeX output of 'ck genbib TXN20 >>references.bib' to a .bib file.
+        if fmt != "bibtex":
+            click.echo("Copied to clipboard!", err=True)
+        else:
+            click.echo("Copied to clipboard!", err=True)
+
+
+@ck.command('fullbib')
+@click.argument('citation_key', required=True, type=click.STRING)
+@click.option(
+    '--clipboard/--no-clipboard',
+    default=True,
+    help='To (not) copy the BibTeX to clipboard.'
+)
+@click.option(
+    '-b', '--bibtex', 'fmt', flag_value='bibtex',
+    default=True,
+    help='Output as a BibTeX citation'
+)
+@click.option(
+    '-m', '--markdown', 'fmt', flag_value='markdown',
+    default=False,
+    help='Output as a Markdown citation'
+)
+@click.option(
+    '-t', '--text', 'fmt', flag_value='text',
+    default=False,
+    help='Output as a plain text citation'
+)
+@click.pass_context
+def ck_fullbib_cmd(ctx, citation_key, clipboard, fmt):
     """Prints the paper's BibTeX and copies it to the clipboard."""
 
     ctx.ensure_object(dict)
