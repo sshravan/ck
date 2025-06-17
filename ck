@@ -894,7 +894,6 @@ def ck_open_cmd(ctx, filename):
 
         # After the user successfully edited the file, we add the correct citation key and the 'ckdateadded' field
         if os.path.exists(fullpath):
-            print(file_to_string(fullpath).strip())
 
             try:
                 bibent = bibent_from_file(fullpath)
@@ -904,11 +903,13 @@ def ck_open_cmd(ctx, filename):
 
                 # warn if bib file is missing 'ckdateadded' field
                 if 'ckdateadded' not in bibent:
-                    if click.confirm("\nWARNING: BibTeX is missing 'ckdateadded'. Would you like to set it to the current time?"):
-                        bibent_set_dateadded(bibent, None)
+                    bibent_set_dateadded(bibent, None)
 
                 # write back the file
                 bibent_to_file(fullpath, bibent)
+                bibent = filter_bib_entry(bibent)
+                to_print = bibent_to_bibtex(bibent)
+                print(to_print)
             except:
                 print_warning("Could not parse BibTeX:")
                 traceback.print_exc()
