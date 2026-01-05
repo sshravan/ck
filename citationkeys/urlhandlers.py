@@ -18,6 +18,7 @@ import bs4
 import click
 import configparser
 import datetime
+import json
 import os
 import pyperclip
 import smtplib
@@ -305,6 +306,128 @@ def iacreprint_handler(opener, soup, parsed_url, parser, user_agent, verbosity, 
         # bibtex = bibtex.encode('utf-8')
 
     return bibtex, pdf_data
+
+
+def usenix_handler(opener, soup, parsed_url, parser, user_agent, verbosity, bib_downl, pdf_downl):
+    """
+    Handler for USENIX conference presentation pages.
+    Extracts citation metadata and generates BibTeX.
+    URL format: https://www.usenix.org/conference/{conf}/presentation/{slug}
+    """
+
+    bibtex = None
+    pdfurl = None
+
+    if soup is None:
+        # Fetch page with strong headers to bypass Cloudflare
+        extra_headers = {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Referer': 'https://www.usenix.org/',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1'
+        }
+        try:
+            html = get_url(opener, parsed_url.geturl(), verbosity,
+                           user_agent, extra_headers=extra_headers)
+            soup = BeautifulSoup(html, parser)
+        except Exception as e:
+            if verbosity > 0:
+                print("Failed to fetch USENIX page:", str(e))
+            return None, None
+
+    if bib_downl:
+        # Try to extract BibTeX from citation meta tags
+        title = None
+        authors = []
+        year = None
+        doi = None
+
+        for tag in soup.find_all('meta'):
+            name = tag.get('name', '').lower()
+            prop = tag.get('property', '').lower()
+            content = tag.get('content', '')
+
+            if name == 'citation_title' or prop == 'og:title':
+                if not title:
+                    title = content
+            elif name == 'citation_author':
+                authors.append(content)
+            elif name == 'citation_publication_date':
+                if content and not year:
+                    year = content.split('-')[0]
+            elif name == 'citation_doi':
+                doi = content
+
+        # Extract from JSON-LD if available
+        json_ld_scripts = soup.find_all(
+            'script', {'type': 'application/ld+json'})
+        for script in json_ld_scripts:
+            try:
+                data = json.loads(script.string)
+                if isinstance(data, dict):
+                    if not title and 'headline' in data:
+                        title = data['headline']
+                    if not title and 'name' in data:
+                        title = data['name']
+                    if not year and 'datePublished' in data:
+                        year_str = data['datePublished']
+                        year = year_str.split('-')[0] if year_str else None
+                    if not doi and 'identifier' in data:
+                        if isinstance(data['identifier'], dict) and 'value' in data['identifier']:
+                            doi = data['identifier']['value']
+                        elif isinstance(data['identifier'], str):
+                            doi = data['identifier']
+                    if not authors and 'author' in data:
+                        auth_data = data['author']
+                        if isinstance(auth_data, list):
+                            for a in auth_data:
+                                if isinstance(a, dict) and 'name' in a:
+                                    authors.append(a['name'])
+                        elif isinstance(auth_data, dict) and 'name' in auth_data:
+                            authors.append(auth_data['name'])
+            except Exception:
+                continue
+
+        # Generate minimal BibTeX if we have at least title
+        if title:
+            path_parts = parsed_url.path.strip('/').split('/')
+            citation_key = 'usenix'
+            if 'conference' in path_parts:
+                conf_idx = path_parts.index('conference')
+                if conf_idx + 1 < len(path_parts):
+                    conference = path_parts[conf_idx + 1]
+                    citation_key = conference
+                if conf_idx + 3 < len(path_parts):
+                    slug = path_parts[conf_idx + 3]
+                    citation_key = f"{conference}_{slug}"
+
+            author_str = ' and '.join(authors) if authors else 'Unknown'
+
+            bib_entry = f"""@inproceedings{{{citation_key},
+  title={{{title}}},
+  author={{{author_str}}}"""
+
+            if year:
+                bib_entry += f""",
+  year={{{year}}}"""
+
+            if doi:
+                bib_entry += f""",
+  doi={{{doi}}}"""
+
+            bib_entry += f""",
+  url={{{parsed_url.geturl()}}}
+}}
+"""
+            bibtex = bib_entry.encode('utf-8')
+
+            if verbosity > 0:
+                print("Generated USENIX BibTeX:")
+                print(bibtex.decode('utf-8'))
+
+    return bibtex, None
 
 
 def sciencedirect_handler(opener, soup, parsed_url, parser, user_agent, verbosity, bib_downl, pdf_downl):

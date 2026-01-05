@@ -132,6 +132,8 @@ def ck(ctx, config_file, verbose):
             "ieeexplore.ieee.org": ieeexplore_handler,
             "www.sciencedirect.com": sciencedirect_handler,
             "sciencedirect.com": sciencedirect_handler,
+            "www.usenix.org": usenix_handler,
+            "usenix.org": usenix_handler,
         }
     except:
         print_error("Config file '" + config_file +
