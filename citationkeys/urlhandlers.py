@@ -117,6 +117,9 @@ def handle_url(url, handlers, opener, user_agent, verbosity, bib_downl, pdf_down
     # page at all since the .pdf and .bib file links are derived directly from
     # the URL itself.
     no_index_html = set()
+    # dl.acm.org often blocks direct HTML scraping (403). Handlers can derive
+    # PDF/Bib links from the DOI, so avoid downloading the index HTML for ACM.
+    no_index_html.add('dl.acm.org')
     # no_index_html.add("eprint.iacr.org") # actually, we need the HTML now (May, 2022)
 
     if domain in handlers:
@@ -156,21 +159,68 @@ def dlacm_handler(opener, soup, parsed_url, parser, user_agent, verbosity, bib_d
     bibtex = None
 
     if pdf_downl:
-        # First, we scrape the PDF link
-        elem = soup.find('a', attrs={"title": "PDF"})
         url_prefix = parsed_url.scheme + '://' + parsed_url.netloc
-        pdfurl = url_prefix + elem.get('href')
-        if verbosity > 0:
-            print("ACM DL paper PDF URL:", pdfurl)
-        pdf_data = download_pdf(opener, user_agent, pdfurl, verbosity)
+
+        # If we don't have the parsed HTML (due to blocking), derive the PDF URL
+        # directly from the DOI: /doi/pdf/<doi>
+        pdfurl = None
+        if soup is None:
+            pdfurl = url_prefix + '/doi/pdf/' + doi
+        else:
+            # 1) <meta name="citation_pdf_url" content="...">
+            meta_pdf = None
+            try:
+                meta_pdf = soup.find(
+                    'meta', attrs={"name": "citation_pdf_url"})
+            except Exception:
+                meta_pdf = None
+
+            if meta_pdf and meta_pdf.get('content'):
+                pdfurl = meta_pdf['content']
+                if pdfurl.startswith('/'):
+                    pdfurl = url_prefix + pdfurl
+            else:
+                elem = soup.find('a', attrs={"title": "PDF"}) if soup else None
+                if elem and elem.get('href'):
+                    pdfurl = elem.get('href')
+                    if pdfurl.startswith('/'):
+                        pdfurl = url_prefix + pdfurl
+                else:
+                    for a in (soup.find_all('a', href=True) if soup else []):
+                        href = a.get('href')
+                        if '/doi/pdf/' in href or href.endswith('.pdf'):
+                            pdfurl = href
+                            if pdfurl.startswith('/'):
+                                pdfurl = url_prefix + pdfurl
+                            break
+
+        if not pdfurl:
+            print_error('Failed to find ACM PDF link on page.')
+            pdf_data = None
+        else:
+            if verbosity > 0:
+                print("ACM DL paper PDF URL:", pdfurl)
+            try:
+                pdf_data = download_pdf(opener, user_agent, pdfurl, verbosity)
+            except Exception:
+                pdf_data = None
 
     if bib_downl:
         # Ugh, the new dl.acm.org has no easy way of getting the BibTeX AFAICT, so using something else
         biburl = "http://doi.org/" + doi
         if verbosity > 0:
             print("ACM DL paper bib URL:", biburl)
-        bibtex = get_url(opener, biburl, verbosity, user_agent,
-                         None, {"Accept": "application/x-bibtex"})
+        try:
+            bibtex = get_url(opener, biburl, verbosity, user_agent,
+                             None, {"Accept": "application/x-bibtex"})
+        except Exception:
+            # Fallback: try https
+            try:
+                biburl = "https://doi.org/" + doi
+                bibtex = get_url(opener, biburl, verbosity, user_agent,
+                                 None, {"Accept": "application/x-bibtex"})
+            except Exception:
+                bibtex = None
 
         # TODO: There is a <form action="/action/exportCiteProcCitation"> element with <input name="content"> which seems to have the BibTeX, but we need to send it a POST request, I think
         # TODO: write a post_url() function that does this and then parse the response?

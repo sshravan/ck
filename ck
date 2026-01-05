@@ -469,9 +469,14 @@ def ck_add_cmd(ctx, url, citation_key, no_tag_prompt):
         error_citation_exists(ctx, citation_key)
         sys.exit(1)
 
-    # Write the PDF file
-    with open(destpdffile, 'wb') as fout:
-        fout.write(pdf_data)
+    # Write the PDF file (if we actually downloaded it). If PDF download was
+    # blocked (pdf_data is None), continue and only write the .bib file.
+    if pdf_data is not None:
+        with open(destpdffile, 'wb') as fout:
+            fout.write(pdf_data)
+    else:
+        click.secho(
+            "Warning: PDF download failed or was blocked; saving BibTeX only.", fg='yellow', err=True)
 
     # Will not write the .bib file when this is a non-handled URL and a .bib file exists
     write_bib_and_prompt_for_tag(
@@ -488,7 +493,23 @@ def write_bib_and_prompt_for_tag(ctx, destbibfile, bibent, citation_key, no_tag_
     # Prompt the user to tag the paper
     if not no_tag_prompt:
         # First, open the PDF so the user can read it before asking them for the tags
-        ctx.invoke(ck_open_cmd, filename=citation_key)
+        # Only open if the PDF file actually exists (could have been blocked).
+        try:
+            ck_bib_dir = ctx.obj.get('BibDir')
+        except Exception:
+            ck_bib_dir = None
+
+        pdf_path_ok = False
+        if ck_bib_dir is not None:
+            pdf_path = ck_to_pdf(ck_bib_dir, citation_key)
+            pdf_path_ok = os.path.exists(pdf_path)
+
+        if pdf_path_ok:
+            ctx.invoke(ck_open_cmd, filename=citation_key)
+        else:
+            click.secho(
+                "Note: PDF not available to open; continuing to tag using BibTeX only.", fg='yellow', err=True)
+
         ctx.invoke(ck_tag_cmd, citation_key=citation_key, silent=True)
 
 
