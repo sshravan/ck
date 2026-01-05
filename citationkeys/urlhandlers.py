@@ -83,11 +83,11 @@ def download_bib(opener, user_agent, biburl, verbosity):
     return None
 
 
-def download_pdf(opener, user_agent, pdfurl, verbosity):
+def download_pdf(opener, user_agent, pdfurl, verbosity, extra_headers=None):
     if pdfurl is not None:
-        pdf_data = get_url(opener, pdfurl, verbosity, user_agent, [
-                           "application/pdf", "application/octet-stream"])
-        return pdf_data
+        return get_url(opener, pdfurl, verbosity, user_agent,
+                       ["application/pdf", "application/octet-stream"],
+                       extra_headers if extra_headers is not None else {})
     return None
 
 
@@ -203,7 +203,18 @@ def dlacm_handler(opener, soup, parsed_url, parser, user_agent, verbosity, bib_d
             try:
                 pdf_data = download_pdf(opener, user_agent, pdfurl, verbosity)
             except Exception:
-                pdf_data = None
+                # Try again with stronger, browser-like headers (Referer, Accept, Accept-Language)
+                try:
+                    extra_headers = {
+                        'Referer': urlunparse(parsed_url),
+                        'Accept': 'application/pdf,application/octet-stream;q=0.9,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Connection': 'keep-alive',
+                    }
+                    pdf_data = download_pdf(
+                        opener, user_agent, pdfurl, verbosity, extra_headers=extra_headers)
+                except Exception:
+                    pdf_data = None
 
     if bib_downl:
         # Ugh, the new dl.acm.org has no easy way of getting the BibTeX AFAICT, so using something else
