@@ -607,44 +607,149 @@ def ieeexplore_handler(opener, soup, parsed_url, parser, user_agent, verbosity, 
     if verbosity > 1:
         print('arnumber: ', arnum)
 
-    # WARNING: Leave these initialized to None, to handle downloading either .bib or .pdf, but not both.
     pdfurl = None
     biburl = None
+    bib_data = None
+    pdf_data = None
+    metadata = None
 
-    if pdf_downl:
-        # To get the PDF link, we have to download an HTML page which puts the PDF in an iframe. Doh.
-        # e.g., https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=7958589
-        # (How do you come up with this design?)
-        pdf_iframe_url = url_prefix + \
-            '/stamp/stamp.jsp?tp=&arnumber=' + str(arnum)
-        html = get_url(opener, pdf_iframe_url, verbosity, user_agent)
-        pdfsoup = BeautifulSoup(html, parser)
-        elem = pdfsoup.find('iframe')
-        if elem == None:
-            print_error(
-                "Parsing failed! Could not find iframe in stamp.jsp HTML.")
-            sys.exit(1)
+    # Ensure we have the document HTML parsed (document pages contain JSON metadata)
+    if soup is None:
+        try:
+            index_html = get_url(
+                opener, parsed_url.geturl(), verbosity, user_agent)
+            soup = BeautifulSoup(index_html, parser)
+        except Exception as e:
+            if verbosity > 0:
+                print('Failed to fetch IEEE document page:', str(e))
+            soup = None
 
-        # TODO(Alin): If we keep getting more errors, try direct link: https://ieeexplore.ieee.org/stampPDF/getPDF.jsp?tp=&isnumber=&arnumber=$arnum
-
-        # e.g., PDF URL
-        # https://ieeexplore.ieee.org/ielx7/7957740/7958557/07958589.pdf
-        # e.g., BibTeX URL
-        # https://ieeexplore.ieee.org/xpl/downloadCitations?recordIds=7958589&download-format=download-bibtex&citations-format=citation-only
+    # Try to extract embedded metadata JSON (xplGlobal.document.metadata)
+    try:
+        page_text = index_html if 'index_html' in locals() else str(soup) if soup else ''
+        if 'xplGlobal.document.metadata' in page_text:
+            start = page_text.find('xplGlobal.document.metadata')
+            start = page_text.find('=', start) + 1
+            # naive balanced-brace extraction
+            depth = 0
+            in_string = False
+            escape = False
+            end = start
+            for i in range(start, len(page_text)):
+                ch = page_text[i]
+                if escape:
+                    escape = False
+                    continue
+                if ch == '\\':
+                    escape = True
+                    continue
+                if ch == '"':
+                    in_string = not in_string
+                    continue
+                if not in_string:
+                    if ch == '{':
+                        depth += 1
+                    elif ch == '}':
+                        depth -= 1
+                        if depth == 0:
+                            end = i + 1
+                            break
+            json_str = page_text[start:end]
+            metadata = json.loads(json_str)
+            if verbosity > 1:
+                print('Extracted IEEE metadata JSON')
+    except Exception as e:
         if verbosity > 1:
-            print("Parsed iframe tag:", elem)
+            print('IEEE metadata extraction failed:', str(e))
 
-        pdfurl = elem['src']
+    # Determine PDF URL from metadata if present
+    if pdf_downl:
+        if metadata:
+            pdf_path = metadata.get('pdfPath') or metadata.get(
+                'pdfUrl') or metadata.get('pdfpath')
+            if pdf_path:
+                if pdf_path.startswith('http'):
+                    pdfurl = pdf_path
+                else:
+                    pdfurl = url_prefix + pdf_path
+                if verbosity > 0:
+                    print('Extracted PDF path from metadata:', pdfurl)
+        # fallback: stamp.jsp iframe (older behavior)
+        if not pdfurl:
+            try:
+                pdf_iframe_url = url_prefix + \
+                    '/stamp/stamp.jsp?tp=&arnumber=' + str(arnum)
+                html = get_url(opener, pdf_iframe_url, verbosity, user_agent)
+                pdfsoup = BeautifulSoup(html, parser)
+                elem = pdfsoup.find('iframe')
+                if elem is not None and elem.get('src'):
+                    pdfurl = elem['src']
+                    if verbosity > 0:
+                        print('Extracted PDF URL from iframe:', pdfurl)
+            except Exception:
+                if verbosity > 1:
+                    print('stamp.jsp fallback failed')
 
+    # Attempt to download BibTeX via IEEE API endpoint
     if bib_downl:
         biburl = url_prefix + '/xpl/downloadCitations?recordIds=' + arnum + \
             '&download-format=download-bibtex&citations-format=citation-abstract'
+        try:
+            bib_data = download_bib(opener, user_agent, biburl, verbosity)
+            if bib_data:
+                bib_data = bib_data.replace(b'<br>', b'')
+                if verbosity > 0:
+                    print('Downloaded BibTeX from API')
+        except Exception as e:
+            if verbosity > 1:
+                print('BibTeX API download failed:', str(e))
 
-    bib_data, pdf_data = download_pdf_andor_bib(
-        opener, user_agent, pdfurl, biburl, verbosity)
+    # If API didn't return BibTeX, synthesize from metadata
+    if bib_data is None and metadata:
+        try:
+            title = metadata.get('title') or metadata.get(
+                'displayDocTitle') or metadata.get('articleTitle') or ''
+            authors = []
+            for a in metadata.get('authors', []):
+                if isinstance(a, dict) and 'name' in a:
+                    authors.append(a['name'])
+                elif isinstance(a, str):
+                    authors.append(a)
+            year = metadata.get('publicationYear') or metadata.get(
+                'publicationDate') or ''
+            if isinstance(year, str) and len(year) >= 4:
+                year = year[:4]
+            venue = metadata.get('publicationTitle') or metadata.get(
+                'displayPublicationTitle')
+            doi = metadata.get('doi') or metadata.get('doiLink')
 
-    if bib_downl:
-        # clean the .bib file, which IEEExplore kindly serves with <br>'s in it
-        bib_data = bib_data.replace(b'<br>', b'')
+            citation_key = 'IEEE' + str(arnum)
+            author_str = ' and '.join(authors) if authors else 'Unknown'
+
+            bib_entry = f"""@inproceedings{{{citation_key},\n  title={{{title}}},\n  author={{{author_str}}}"""
+            if year:
+                bib_entry += f",\n  year={{{year}}}"
+            if venue:
+                bib_entry += f",\n  booktitle={{{venue}}}"
+            if doi:
+                bib_entry += f",\n  doi={{{doi}}}"
+            bib_entry += f",\n  url={{{parsed_url.geturl()}}}\n}}\n"
+
+            bib_data = bib_entry.encode('utf-8')
+            if verbosity > 0:
+                print('Generated BibTeX from metadata:')
+                print(bib_data.decode('utf-8'))
+        except Exception as e:
+            if verbosity > 1:
+                print('Error generating BibTeX from metadata:', str(e))
+
+    # Download PDF, but handle failures gracefully (paywall/login/HTML responses)
+    if pdfurl:
+        try:
+            pdf_data = download_pdf(opener, user_agent, pdfurl, verbosity)
+        except Exception as e:
+            if verbosity > 0:
+                print('PDF download failed:', str(e))
+            pdf_data = None
 
     return bib_data, pdf_data
